@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Tanques - 2 Jugadores</title>
+    <title>Juego de Tanques - 4 Jugadores</title>
     <style>
         body { background-color: black; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
         canvas { border: 1px solid white; }
@@ -16,16 +16,16 @@
         const ctx = canvas.getContext('2d');
 
         class Tank {
-            constructor(x, y, color, rotateLeftKey, rotateRightKey, moveKey, shootKey) {
+            constructor(x, y, color, moveKey, rotateLeftKey, rotateRightKey, shootKey) {
                 this.x = x;
                 this.y = y;
                 this.color = color;
                 this.angle = 0;
+                this.moveKey = moveKey;
                 this.rotateLeftKey = rotateLeftKey;
                 this.rotateRightKey = rotateRightKey;
-                this.moveKey = moveKey;
                 this.shootKey = shootKey;
-                this.health = 50;
+                this.health = 3;
                 this.ammo = 0;
                 this.visionRadius = 150;
                 this.lastShootTime = 0;
@@ -112,7 +112,7 @@
             }
 
             draw(ctx) {
-                ctx.fillStyle = 'yellow';
+                ctx.fillStyle = 'white';
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
                 ctx.fill();
@@ -144,8 +144,11 @@
             }
         }
 
-        const tank1 = new Tank(100, 400, 'blue', 'a', 'd', 'w', 's');
-        const tank2 = new Tank(1100, 400, 'red', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown');
+        const tank1 = new Tank(100, 200, 'blue', 'w', 'a', 'd', 's');
+        const tank2 = new Tank(1100, 200, 'red', 'i', 'j', 'l', 'k');
+        const tank3 = new Tank(100, 600, 'green', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown');
+        const tank4 = new Tank(1100, 600, 'yellow', 'Numpad8', 'Numpad4', 'Numpad6', 'Numpad5');
+        const tanks = [tank1, tank2, tank3, tank4];
         let bullets = [];
         let ammoBoxes = [];
         let obstacles = Array(20).fill().map(() => new Obstacle());
@@ -183,65 +186,45 @@
             ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.clip();
             
-            // Dibujar el fondo negro dentro del área visible
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Dibujar obstáculos
             obstacles.forEach(obstacle => obstacle.draw(ctx));
-            
-            // Dibujar cajas de munición
             ammoBoxes.forEach(ammo => ammo.draw(ctx));
-            
-            // Dibujar balas
             bullets.forEach(bullet => bullet.draw(ctx));
-            
-            // Dibujar tanques
-            tank1.draw(ctx);
-            tank2.draw(ctx);
+            tanks.forEach(tank => tank.draw(ctx));
             
             ctx.restore();
         }
 
         function drawGame() {
-            // Limpiar el canvas
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Dibujar áreas visibles para cada tanque
-            drawVisibleArea(ctx, tank1.x, tank1.y, tank1.visionRadius);
-            drawVisibleArea(ctx, tank2.x, tank2.y, tank2.visionRadius);
+            tanks.forEach(tank => drawVisibleArea(ctx, tank.x, tank.y, tank.visionRadius));
 
-            // Dibujar información de salud
             ctx.fillStyle = 'white';
             ctx.font = '20px Arial';
-            ctx.fillText(`Jugador 1: ${tank1.health}`, 10, 30);
-            ctx.fillText(`Jugador 2: ${tank2.health}`, canvas.width - 120, 30);
+            tanks.forEach((tank, index) => {
+                ctx.fillText(`Jugador ${index + 1}: ${tank.health}`, 10, 30 * (index + 1));
+            });
         }
 
         function gameLoop() {
-            // Actualizar tanques basado en las teclas presionadas
-            if (keysPressed[tank1.rotateLeftKey]) tank1.rotateLeft();
-            if (keysPressed[tank1.rotateRightKey]) tank1.rotateRight();
-            if (keysPressed[tank1.moveKey]) tank1.move();
-            if (keysPressed[tank1.shootKey]) tank1.shoot();
-
-            if (keysPressed[tank2.rotateLeftKey]) tank2.rotateLeft();
-            if (keysPressed[tank2.rotateRightKey]) tank2.rotateRight();
-            if (keysPressed[tank2.moveKey]) tank2.move();
-            if (keysPressed[tank2.shootKey]) tank2.shoot();
+            tanks.forEach(tank => {
+                if (keysPressed[tank.moveKey]) tank.move();
+                if (keysPressed[tank.rotateLeftKey]) tank.rotateLeft();
+                if (keysPressed[tank.rotateRightKey]) tank.rotateRight();
+                if (keysPressed[tank.shootKey]) tank.shoot();
+            });
 
             bullets = bullets.filter((bullet) => {
-                if (bullet.move()) {
-                    return false;
-                }
-                if (checkCollision(bullet, bullet.color === 'blue' ? tank2 : tank1)) {
-                    if (bullet.color === 'blue') {
-                        tank2.health--;
-                    } else {
-                        tank1.health--;
+                if (bullet.move()) return false;
+                for (let tank of tanks) {
+                    if (bullet.color !== tank.color && checkCollision(bullet, tank)) {
+                        tank.health--;
+                        return false;
                     }
-                    return false;
                 }
                 if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
                     return false;
@@ -250,22 +233,27 @@
             });
 
             ammoBoxes = ammoBoxes.filter((ammo) => {
-                if (checkCollision(ammo, tank1)) {
-                    tank1.ammo += ammo.amount;
-                    return false;
-                } else if (checkCollision(ammo, tank2)) {
-                    tank2.ammo += ammo.amount;
-                    return false;
+                for (let tank of tanks) {
+                    if (checkCollision(ammo, tank)) {
+                        tank.ammo += ammo.amount;
+                        return false;
+                    }
                 }
                 return true;
             });
 
             drawGame();
 
-            if (tank1.health <= 0 || tank2.health <= 0) {
+            const aliveTanks = tanks.filter(tank => tank.health > 0);
+            if (aliveTanks.length <= 1) {
                 ctx.fillStyle = 'white';
                 ctx.font = '40px Arial';
-                ctx.fillText(`¡${tank1.health <= 0 ? 'Jugador 2' : 'Jugador 1'} gana!`, canvas.width / 2 - 100, canvas.height / 2);
+                if (aliveTanks.length === 1) {
+                    const winnerIndex = tanks.indexOf(aliveTanks[0]) + 1;
+                    ctx.fillText(`¡Jugador ${winnerIndex} gana!`, canvas.width / 2 - 100, canvas.height / 2);
+                } else {
+                    ctx.fillText('¡Empate!', canvas.width / 2 - 50, canvas.height / 2);
+                }
                 return;
             }
 
