@@ -192,7 +192,7 @@
             obstacles.forEach(obstacle => obstacle.draw(ctx));
             ammoBoxes.forEach(ammo => ammo.draw(ctx));
             bullets.forEach(bullet => bullet.draw(ctx));
-            tanks.forEach(tank => tank.draw(ctx));
+            tanks.filter(tank => tank.health > 0).forEach(tank => tank.draw(ctx));
             
             ctx.restore();
         }
@@ -201,17 +201,24 @@
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            tanks.forEach(tank => drawVisibleArea(ctx, tank.x, tank.y, tank.visionRadius));
+            const aliveTanks = tanks.filter(tank => tank.health > 0);
+            aliveTanks.forEach(tank => drawVisibleArea(ctx, tank.x, tank.y, tank.visionRadius));
 
             ctx.fillStyle = 'white';
             ctx.font = '20px Arial';
             tanks.forEach((tank, index) => {
-                ctx.fillText(`Jugador ${index + 1}: ${tank.health}`, 10, 30 * (index + 1));
+                if (tank.health > 0) {
+                    ctx.fillText(`Jugador ${index + 1}: ${tank.health}`, 10, 30 * (index + 1));
+                } else {
+                    ctx.fillText(`Jugador ${index + 1}: Eliminado`, 10, 30 * (index + 1));
+                }
             });
         }
 
         function gameLoop() {
-            tanks.forEach(tank => {
+            const aliveTanks = tanks.filter(tank => tank.health > 0);
+
+            aliveTanks.forEach(tank => {
                 if (keysPressed[tank.moveKey]) tank.move();
                 if (keysPressed[tank.rotateLeftKey]) tank.rotateLeft();
                 if (keysPressed[tank.rotateRightKey]) tank.rotateRight();
@@ -220,7 +227,7 @@
 
             bullets = bullets.filter((bullet) => {
                 if (bullet.move()) return false;
-                for (let tank of tanks) {
+                for (let tank of aliveTanks) {
                     if (bullet.color !== tank.color && checkCollision(bullet, tank)) {
                         tank.health--;
                         return false;
@@ -233,7 +240,7 @@
             });
 
             ammoBoxes = ammoBoxes.filter((ammo) => {
-                for (let tank of tanks) {
+                for (let tank of aliveTanks) {
                     if (checkCollision(ammo, tank)) {
                         tank.ammo += ammo.amount;
                         return false;
@@ -244,7 +251,6 @@
 
             drawGame();
 
-            const aliveTanks = tanks.filter(tank => tank.health > 0);
             if (aliveTanks.length <= 1) {
                 ctx.fillStyle = 'white';
                 ctx.font = '40px Arial';
@@ -252,7 +258,7 @@
                     const winnerIndex = tanks.indexOf(aliveTanks[0]) + 1;
                     ctx.fillText(`¡Jugador ${winnerIndex} gana!`, canvas.width / 2 - 100, canvas.height / 2);
                 } else {
-                    ctx.fillText('¡Empate!', canvas.width / 2 - 50, canvas.height / 2);
+                    ctx.fillText('¡Todos eliminados!', canvas.width / 2 - 100, canvas.height / 2);
                 }
                 return;
             }
