@@ -28,6 +28,8 @@
                 this.health = 3;
                 this.ammo = 0;
                 this.visionRadius = 150;
+                this.lastShootTime = 0;
+                this.shootCooldown = 500; // 500 ms cooldown
             }
 
             draw(ctx) {
@@ -62,9 +64,11 @@
             }
 
             shoot() {
-                if (this.ammo > 0) {
+                const currentTime = Date.now();
+                if (this.ammo > 0 && currentTime - this.lastShootTime > this.shootCooldown) {
                     bullets.push(new Bullet(this.x, this.y, this.angle, this.color));
                     this.ammo--;
+                    this.lastShootTime = currentTime;
                 }
             }
         }
@@ -146,6 +150,8 @@
         let ammoBoxes = [];
         let obstacles = Array(20).fill().map(() => new Obstacle());
 
+        const keysPressed = {};
+
         function checkObstacleCollision(x, y) {
             return obstacles.some(obstacle => 
                 x > obstacle.x && 
@@ -214,6 +220,17 @@
         }
 
         function gameLoop() {
+            // Actualizar tanques basado en las teclas presionadas
+            if (keysPressed[tank1.rotateLeftKey]) tank1.rotateLeft();
+            if (keysPressed[tank1.rotateRightKey]) tank1.rotateRight();
+            if (keysPressed[tank1.moveKey]) tank1.move();
+            if (keysPressed[tank1.shootKey]) tank1.shoot();
+
+            if (keysPressed[tank2.rotateLeftKey]) tank2.rotateLeft();
+            if (keysPressed[tank2.rotateRightKey]) tank2.rotateRight();
+            if (keysPressed[tank2.moveKey]) tank2.move();
+            if (keysPressed[tank2.shootKey]) tank2.shoot();
+
             bullets = bullets.filter((bullet) => {
                 if (bullet.move()) {
                     return false;
@@ -257,16 +274,11 @@
         }
 
         document.addEventListener('keydown', (event) => {
-            switch (event.key) {
-                case tank1.rotateLeftKey: tank1.rotateLeft(); break;
-                case tank1.rotateRightKey: tank1.rotateRight(); break;
-                case tank1.moveKey: tank1.move(); break;
-                case tank1.shootKey: tank1.shoot(); break;
-                case tank2.rotateLeftKey: tank2.rotateLeft(); break;
-                case tank2.rotateRightKey: tank2.rotateRight(); break;
-                case tank2.moveKey: tank2.move(); break;
-                case tank2.shootKey: tank2.shoot(); break;
-            }
+            keysPressed[event.key] = true;
+        });
+
+        document.addEventListener('keyup', (event) => {
+            keysPressed[event.key] = false;
         });
 
         gameLoop();
@@ -276,4 +288,4 @@
         }, Math.floor(Math.random() * 10000) + 10000); // Entre 10000 y 20000 ms
     </script>
 </body>
-</html> 
+</html>
