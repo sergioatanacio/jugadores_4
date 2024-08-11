@@ -25,7 +25,7 @@
                 this.rotateLeftKey = rotateLeftKey;
                 this.rotateRightKey = rotateRightKey;
                 this.shootKey = shootKey;
-                this.health = 50;
+                this.health = 30;
                 this.ammo = 0;
                 this.visionRadius = 150;
                 this.lastShootTime = 0;
@@ -108,7 +108,7 @@
                     this.x = Math.random() * (canvas.width - 10) + 5;
                     this.y = Math.random() * (canvas.height - 10) + 5;
                 } while (checkObstacleCollision(this.x, this.y));
-                this.amount = Math.floor(Math.random() * 21) + 2;
+                this.amount = Math.floor(Math.random() * 11) + 2;
             }
 
             draw(ctx) {
